@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimierung der Woche</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:#080808;--bg1:#0e0e0e;--bg2:#141414;--bg3:#1a1a1a;--bg4:#222;--bg5:#2a2a2a;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--b3:rgba(255,255,255,0.16);
+  --t1:#f5f2ed;--t2:#a09a90;--t3:#5a5550;--t4:#3a3530;
+  --gold:#d4a843;--gold2:#f0c866;--gold-dim:rgba(212,168,67,0.10);--gold-glow:rgba(212,168,67,0.22);
+  --teal:#3dcfb0;--teal-dim:rgba(61,207,176,0.10);
+  --rose:#e05a6a;--rose-dim:rgba(224,90,106,0.10);
+  --blue:#5a9cf0;--blue-dim:rgba(90,156,240,0.10);
+  --green:#5ac87a;--green-dim:rgba(90,200,122,0.10);
+  --purple:#9b7ef0;--purple-dim:rgba(155,126,240,0.10);
+  --amber:#f0a040;--amber-dim:rgba(240,160,64,0.10);
+  --r:10px;--r2:16px;--r3:24px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--t1);font-family:'Syne',sans-serif;font-weight:400;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(212,168,67,0.04) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.app{position:relative;z-index:1;max-width:1020px;margin:0 auto;padding:0 20px 100px}
+
+/* ── SETUP OVERLAY ── */
+.setup-overlay{position:fixed;inset:0;background:rgba(8,8,8,0.97);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.setup-box{background:var(--bg2);border:1px solid var(--gold-glow);border-radius:var(--r3);padding:48px 40px;max-width:520px;width:100%;text-align:center}
+.setup-logo{font-family:'Instrument Serif',serif;font-size:32px;color:var(--gold);margin-bottom:6px}
+.setup-sub{font-size:13px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;margin-bottom:32px}
+.setup-step{display:none}.setup-step.active{display:block;animation:fadeIn 0.2s ease}
+.setup-step h2{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--t1)}
+.setup-step p{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:20px}
+.setup-step .hint{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;line-height:1.6;background:var(--bg3);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;text-align:left}
+.setup-step .hint strong{color:var(--gold)}
+
+/* ── HEADER ── */
+.header{display:grid;grid-template-columns:1fr auto;align-items:end;gap:20px;padding:44px 0 32px;border-bottom:1px solid var(--b1);margin-bottom:32px}
+@media(max-width:600px){.header{grid-template-columns:1fr;padding:24px 0 20px}}
+.brand{font-family:'Instrument Serif',serif;font-size:clamp(26px,5vw,42px);font-weight:400;letter-spacing:-0.02em;line-height:1.05;color:var(--t1)}
+.brand em{font-style:italic;color:var(--gold)}
+.brand-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:0.12em;text-transform:uppercase;margin-top:6px}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t3);margin-top:6px;cursor:pointer}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--t4);flex-shrink:0;transition:background 0.3s}
+.sync-dot.ok{background:var(--green)}.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
+.sync-dot.error{background:var(--rose)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.level-panel{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--gold-glow);border-radius:var(--r2);padding:14px 18px;min-width:170px;position:relative;overflow:hidden}
+.level-panel::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,var(--gold-glow),transparent 70%);pointer-events:none}
+.level-row{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.level-num{font-family:'Instrument Serif',serif;font-size:34px;color:var(--gold);line-height:1}
+.level-lbl{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em}
+.level-title{font-size:11px;color:var(--gold2);font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:0.06em}
+.xp-bar-bg{height:4px;background:var(--b1);border-radius:2px;overflow:hidden}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width 0.8s cubic-bezier(.4,0,.2,1)}
+.xp-lbl{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-top:4px}
+
+/* ── NAV ── */
+.nav{display:flex;gap:2px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:4px;margin-bottom:28px;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-btn{flex-shrink:0;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--t3);transition:all 0.15s;font-family:'Syne',sans-serif;letter-spacing:0.04em;white-space:nowrap}
+.nav-btn:hover{color:var(--t2);background:var(--b1)}
+.nav-btn.active{background:var(--bg4);color:var(--t1);border:1px solid var(--b2)}
+.nav-badge{display:inline-block;background:var(--gold-dim);color:var(--gold);border-radius:20px;font-size:10px;padding:1px 6px;margin-left:4px;font-family:'JetBrains Mono',monospace}
+
+/* ── PANELS ── */
+.panel{display:none;animation:fadeIn 0.2s ease}.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden;margin-bottom:16px;transition:border-color 0.2s}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.card-title{font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t2)}
+.card-body{padding:18px 20px}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px}
+.stat-mini{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;text-align:center}
+.stat-num{font-family:'Instrument Serif',serif;font-size:26px;color:var(--gold);line-height:1}
+.stat-lbl{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-top:3px}
+
+/* ── PROFILE BANNER ── */
+.profile-banner{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--r2);padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.profile-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dim),var(--bg4));border:2px solid var(--gold-glow);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.profile-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ptag{font-size:11px;font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--b1);border-radius:20px;padding:2px 9px;color:var(--t3)}
+
+/* ── PROMPT BOX ── */
+.kw-tag{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;padding:3px 9px;color:var(--t3);letter-spacing:0.06em}
+.kw-tag.gold{background:var(--gold-dim);border-color:var(--gold-glow);color:var(--gold)}
+.prompt-box{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--t2);line-height:1.7;position:relative;white-space:pre-wrap;word-break:break-word}
+.prompt-box strong{color:var(--gold);display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px}
+.copy-btn{position:absolute;top:10px;right:10px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t3);font-size:11px;padding:3px 9px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.15s}
+.copy-btn:hover{color:var(--t1);border-color:var(--b3)}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);transition:all 0.15s;font-family:'Syne',sans-serif;letter-spacing:0.05em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg4);border-color:var(--b3)}.btn:active{transform:scale(0.97)}
+.btn-gold{background:var(--gold);color:#080808;border-color:var(--gold);font-weight:800}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2)}
+.btn-ghost{background:transparent;color:var(--t3)}.btn-ghost:hover{color:var(--t1);background:var(--b1)}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-teal{background:var(--teal);color:#080808;border-color:var(--teal);font-weight:800}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── FORMS ── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fg label{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;text-transform:uppercase}
+input,select,textarea{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:13px;padding:9px 12px;font-family:'Syne',sans-serif;outline:none;transition:border-color 0.15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--gold-glow);box-shadow:0 0 0 3px var(--gold-dim)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:70px;line-height:1.6}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.form-grid{grid-template-columns:1fr}}
+
+/* ── CHIPS ── */
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--b1)}
+.chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:transparent;color:var(--t3);transition:all 0.15s;font-family:'Syne',sans-serif;letter-spacing:0.03em}
+.chip:hover{border-color:var(--b3);color:var(--t2)}
+.chip.active{background:var(--gold-dim);border-color:var(--gold-glow);color:var(--gold)}
+
+/* ── OPT ITEMS ── */
+.opt-list{display:flex;flex-direction:column;gap:8px}
+.opt-item{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all 0.2s}
+.opt-item:hover{border-color:var(--b2)}.opt-item.expanded{border-color:var(--b3)}
+.opt-head{display:flex;align-items:center;gap:12px;padding:14px 18px}
+.opt-ico{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:1px solid var(--b1)}
+.opt-main{flex:1;min-width:0}
+.opt-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.opt-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.opt-desc{font-size:12px;color:var(--t3);margin-top:3px;line-height:1.4}
+.opt-detail{display:none;padding:14px 18px;border-top:1px solid var(--b1)}
+.opt-item.expanded .opt-detail{display:block;animation:fadeIn 0.15s ease}
+.opt-detail-text{font-size:13px;color:var(--t2);line-height:1.75;margin-bottom:12px;white-space:pre-wrap}
+.note-area{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:8px 12px;margin-bottom:10px}
+.note-area label{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+.note-area textarea{background:transparent;border:none;padding:0;font-size:12px;color:var(--t2);resize:none;min-height:36px;outline:none}
+
+/* ── BADGES ── */
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;border:1px solid;text-transform:uppercase}
+.b-aktiv{color:var(--teal);border-color:rgba(61,207,176,0.3);background:var(--teal-dim)}
+.b-verinnerlicht{color:var(--gold);border-color:var(--gold-glow);background:var(--gold-dim)}
+.b-pausiert{color:var(--t3);border-color:var(--b1);background:transparent}
+.b-cat{color:var(--t3);border-color:var(--b1);background:var(--bg3)}
+.b-gruen{color:var(--green);border-color:rgba(90,200,122,0.3);background:var(--green-dim)}
+.b-rot{color:var(--rose);border-color:rgba(224,90,106,0.3);background:var(--rose-dim)}
+.b-amber{color:var(--amber);border-color:rgba(240,160,64,0.3);background:var(--amber-dim)}
+.b-blue{color:var(--blue);border-color:rgba(90,156,240,0.3);background:var(--blue-dim)}
+
+/* ── ACHIEVEMENTS ── */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.ach-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:16px;text-align:center;position:relative;overflow:hidden;transition:all 0.2s}
+.ach-card.unlocked{border-color:var(--gold-glow)}.ach-card.unlocked::before{content:'';position:absolute;top:-40px;left:-40px;width:120px;height:120px;background:radial-gradient(circle,var(--gold-dim),transparent 70%);pointer-events:none}
+.ach-card.locked{opacity:0.38;filter:grayscale(1)}
+.ach-icon{font-size:26px;margin-bottom:7px;display:block}
+.ach-name{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:3px}
+.ach-desc{font-size:11px;color:var(--t3);line-height:1.4;font-family:'JetBrains Mono',monospace}
+.ach-xp{display:inline-block;margin-top:7px;font-size:10px;color:var(--gold);font-family:'JetBrains Mono',monospace;background:var(--gold-dim);padding:2px 8px;border-radius:20px}
+
+/* ── STREAK ── */
+.streak-cal{display:flex;gap:5px;flex-wrap:wrap}
+.sc{width:32px;height:32px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--b1);background:var(--bg2);font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace;cursor:default}
+.sc.done{background:var(--gold-dim);border-color:var(--gold-glow);color:var(--gold)}
+.sc.cur{border-color:var(--b3);color:var(--t2);background:var(--bg3)}
+.sc-kw{font-size:9px;opacity:0.6}
+
+/* ── PROGRESS ── */
+.prog-item{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.prog-lbl{font-size:12px;color:var(--t2);width:150px;flex-shrink:0;font-weight:600}
+.prog-bar{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.prog-num{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;width:22px;text-align:right}
+
+/* ── REVIEW ── */
+.review-entry{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:8px}
+.review-kw{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);margin-bottom:6px}
+.review-text{font-size:13px;color:var(--t2);line-height:1.6}
+
+/* ── LERNEN PANEL ── */
+.pruefung-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all 0.2s}
+.pruefung-card:hover{border-color:var(--b2)}
+.pruefung-card.expanded{border-color:var(--b3)}
+.pf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pf-name{font-size:15px;font-weight:700;color:var(--t1)}
+.pf-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3)}
+.pf-countdown{font-size:13px;font-weight:700}
+.pf-countdown.rot{color:var(--rose)}.pf-countdown.amber{color:var(--amber)}.pf-countdown.gruen{color:var(--green)}
+.pf-progress-wrap{margin-top:12px}
+.pf-prog-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:6px}
+.pf-prog-fill{height:100%;border-radius:4px;transition:width 0.5s ease;background:linear-gradient(90deg,var(--blue),var(--teal))}
+.pf-detail{display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px}
+.pruefung-card.expanded .pf-detail{display:block;animation:fadeIn 0.15s ease}
+
+.lernlog-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1)}
+.lernlog-item:last-child{border-bottom:none}
+.lernlog-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);min-width:90px}
+.lernlog-text{font-size:13px;color:var(--t2);flex:1}
+.lernlog-min{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);min-width:50px;text-align:right}
+
+.thema-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1)}
+.thema-item:last-child{border-bottom:none}
+.thema-name{font-size:13px;color:var(--t1);flex:1}
+.thema-status-sel{background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t2);font-size:11px;padding:4px 8px;font-family:'Syne',sans-serif;cursor:pointer;outline:none}
+
+/* ── LEGENDE ── */
+.legend-section{margin-bottom:28px}
+.legend-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.legend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.legend-card{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px}
+.legend-card h4{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.legend-card p{font-size:12px;color:var(--t2);line-height:1.6}
+.legend-steps{counter-reset:step}
+.legend-step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold-glow);color:var(--gold);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.step-text{font-size:13px;color:var(--t2);line-height:1.6;padding-top:2px}
+
+/* ── EINSTELLUNGEN ── */
+.settings-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:18px 20px;margin-bottom:14px}
+.settings-card h3{font-size:13px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px}
+.conn-status{display:inline-flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:8px 14px;font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace;margin-bottom:12px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:8000;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:1px solid var(--gold-glow);border-radius:var(--r3);padding:44px 36px;text-align:center;max-width:340px;width:90%;box-shadow:0 0 80px rgba(212,168,67,0.15);animation:scaleIn 0.3s cubic-bezier(.4,0,.2,1)}
+@keyframes scaleIn{from{transform:scale(0.85)}to{transform:scale(1)}}
+.modal-icon{font-size:52px;margin-bottom:14px;display:block}
+.modal-title{font-family:'Instrument Serif',serif;font-size:30px;color:var(--gold);margin-bottom:7px}
+.modal-sub{font-size:14px;color:var(--t2);margin-bottom:22px;line-height:1.6}
+
+/* ── TOAST / XP ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg4);border:1px solid var(--b3);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--t1);transform:translateY(80px);opacity:0;transition:all 0.25s cubic-bezier(.4,0,.2,1);z-index:9999;font-weight:600}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:var(--teal)}.toast.err{border-color:var(--rose)}
+.xp-pop{position:fixed;bottom:72px;right:24px;background:var(--gold);color:#080808;border-radius:var(--r);padding:9px 16px;font-size:13px;font-weight:800;transform:translateY(40px);opacity:0;transition:all 0.3s cubic-bezier(.4,0,.2,1);z-index:9999;pointer-events:none;font-family:'Syne',sans-serif}
+.xp-pop.show{transform:translateY(0);opacity:1}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--b1);margin:20px 0}
+.section-label{font-size:10px;font-weight:700;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
+.empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.empty-icon{font-size:36px;display:block;margin-bottom:10px;opacity:0.35}
+.search-wrap{position:relative}.search-wrap input{padding-left:34px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- SETUP OVERLAY -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-box">
+    <div class="setup-logo">✦ Optimierung der Woche</div>
+    <div class="setup-sub">Einmalige Einrichtung · dauert ca. 5 Minuten</div>
+
+    <div class="setup-step active" id="step1">
+      <h2>Schritt 1 — Supabase Projekt</h2>
+      <p>Erstelle zuerst ein kostenloses Konto und Projekt auf Supabase. Wähle dabei als Region <strong>Frankfurt (EU)</strong>.</p>
+      <div class="hint">
+        1. Gehe zu <strong>supabase.com</strong> → "Start your project"<br>
+        2. Konto erstellen (E-Mail + Passwort)<br>
+        3. "New Project" → Name: <strong>optimierung</strong><br>
+        4. Region: <strong>eu-central-1 (Frankfurt)</strong><br>
+        5. Passwort vergeben (merken!) → "Create new project"<br>
+        6. Ca. 1 Minute warten bis das Projekt bereit ist
+      </div>
+      <button class="btn btn-gold" onclick="goStep(2)">Weiter →</button>
+    </div>
+
+    <div class="setup-step" id="step2">
+      <h2>Schritt 2 — Datenbank einrichten</h2>
+      <p>Führe dieses SQL-Skript in deinem Supabase Projekt aus, um alle nötigen Tabellen zu erstellen.</p>
+      <div class="hint" id="sqlHint" style="text-align:left;font-size:11px;max-height:180px;overflow-y:auto">
+Im Supabase Dashboard:<br>
+→ <strong>SQL Editor</strong> (linke Leiste)<br>
+→ "New query" klicken<br>
+→ Folgenden Code einfügen und "Run" klicken:<br><br>
+<button class="copy-btn" style="position:relative;top:0;right:0;margin-bottom:8px" onclick="copySql()">SQL kopieren</button>
+      </div>
+      <button class="btn btn-gold" onclick="goStep(3)">Weiter →</button>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="goStep(1)">← Zurück</button>
+    </div>
+
+    <div class="setup-step" id="step3">
+      <h2>Schritt 3 — Verbindungsdaten</h2>
+      <p>Trage deine Supabase URL und den anonymen API Key ein. Beides findest du unter <strong>Settings → API</strong> in deinem Projekt.</p>
+      <div class="fg"><label>Supabase Project URL</label><input type="text" id="setupUrl" placeholder="https://xxxxxxxxxxxx.supabase.co"></div>
+      <div class="fg"><label>Supabase Anon Key</label><input type="text" id="setupKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></div>
+      <div class="fg"><label>Dein Name (optional)</label><input type="text" id="setupName" placeholder="z.B. Max"></div>
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-gold" onclick="finishSetup()">✦ Verbinden & Starten</button>
+        <button class="btn btn-ghost" onclick="goStep(2)">← Zurück</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display:none">
+
+  <div class="header">
+    <div>
+      <div class="brand">Optimierung <em>der Woche</em></div>
+      <div class="brand-sub" id="brandSub">Persönlicher Verbesserungs-Tracker</div>
+      <div class="sync-status" onclick="syncNow()" title="Klicken zum Synchronisieren">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncLabel">Verbinde…</span>
+      </div>
+    </div>
+    <div class="level-panel">
+      <div class="level-row"><div class="level-num" id="lvNum">1</div><div class="level-lbl">LEVEL</div></div>
+      <div class="level-title" id="lvTitle">Einsteiger</div>
+      <div class="xp-bar-bg"><div class="xp-bar-fill" id="xpBar" style="width:0%"></div></div>
+      <div class="xp-lbl" id="xpLbl">0 XP</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showTab('dashboard')">Dashboard</button>
+    <button class="nav-btn" onclick="showTab('neue')">+ Neue</button>
+    <button class="nav-btn" onclick="showTab('alle')">Alle <span class="nav-badge" id="cntBadge">0</span></button>
+    <button class="nav-btn" onclick="showTab('lernen')">📚 Lernen</button>
+    <button class="nav-btn" onclick="showTab('errungenschaften')">Errungenschaften</button>
+    <button class="nav-btn" onclick="showTab('rueckblick')">Rückblick</button>
+    <button class="nav-btn" onclick="showTab('legende')">Anleitung</button>
+    <button class="nav-btn" onclick="showTab('einstellungen')">Einstellungen</button>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="panel active" id="tab-dashboard">
+    <div class="profile-banner">
+      <div class="profile-avatar">👤</div>
+      <div style="flex:1">
+        <div style="font-size:18px;font-weight:700" id="dashName">Mein Profil</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Vollzeit · Rechtswissenschaften (berufsbegleitend)</div>
+        <div class="profile-tags">
+          <span class="ptag">Windows 11</span><span class="ptag">iPhone · iPad</span>
+          <span class="ptag">Claude Pro</span><span class="ptag">Analoger Kalender</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-mini"><div class="stat-num" id="ds-tot">0</div><div class="stat-lbl">Gesamt</div></div>
+      <div class="stat-mini"><div class="stat-num" id="ds-akt">0</div><div class="stat-lbl">Aktiv</div></div>
+      <div class="stat-mini"><div class="stat-num" id="ds-ver">0</div><div class="stat-lbl">Verinnerlicht</div></div>
+      <div class="stat-mini"><div class="stat-num" id="ds-str">0</div><div class="stat-lbl">Streak</div></div>
+      <div class="stat-mini"><div class="stat-num" id="ds-xp">0</div><div class="stat-lbl">XP</div></div>
+      <div class="stat-mini"><div class="stat-num" id="ds-prf">0</div><div class="stat-lbl">Prüfungen</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Vorschlag für diese Woche</div>
+        <span class="kw-tag gold" id="kwDisp">KW —</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--t3);margin-bottom:12px;line-height:1.7">Kopiere diesen Prompt in deinen Claude Chat — du bekommst sofort einen personalisierten Vorschlag.</p>
+        <div class="prompt-box"><strong>Claude Prompt — kopieren & einfügen</strong><span id="promptTxt"></span><button class="copy-btn" onclick="copyPrompt()">Kopieren</button></div>
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="showTab('neue')">Vorschlag eintragen →</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Diese Woche</div></div>
+      <div class="card-body" id="curWeekList"><div class="empty"><span class="empty-icon">🌱</span>Noch keine Einträge diese Woche</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Nächste Prüfungen</div></div>
+      <div class="card-body" id="dashPruefungen"><div class="empty"><span class="empty-icon">📅</span>Keine anstehenden Prüfungen</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Streak-Kalender</div></div>
+      <div class="card-body"><div class="streak-cal" id="streakCal"></div></div>
+    </div>
+  </div>
+
+  <!-- ── NEUE OPTIMIERUNG ── -->
+  <div class="panel" id="tab-neue">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Neue Optimierung eintragen</div></div>
+      <div class="chip-row" id="newChipRow"></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="fg"><label>Bezeichnung *</label><input type="text" id="nName" placeholder="z.B. Strg+Shift+C in Word"></div>
+          <div class="fg"><label>Kategorie</label><select id="nCat"></select></div>
+        </div>
+        <div class="fg"><label>Kurzbeschreibung</label><input type="text" id="nDesc" placeholder="Was bringt dir das konkret?"></div>
+        <div class="fg"><label>Details / Claude-Vorschlag</label><textarea id="nDetail" rows="5" placeholder="Füge hier den Claude-Vorschlag ein…"></textarea></div>
+        <div class="fg"><label>Eigene Notiz</label><textarea id="nNote" rows="2" placeholder="Deine Gedanken dazu…"></textarea></div>
+        <div class="btn-row">
+          <button class="btn btn-gold" onclick="saveOpt()">✦ Speichern & XP verdienen</button>
+          <button class="btn btn-ghost" onclick="clearOptForm()">Zurücksetzen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALLE ── -->
+  <div class="panel" id="tab-alle">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-family:'Instrument Serif',serif;font-size:22px">Alle Optimierungen</div>
+      <div class="search-wrap" style="flex:1;max-width:220px"><span class="search-icon">⌕</span><input type="text" placeholder="Suchen…" oninput="renderAlle(this.value)"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="alleCatRow"></div>
+    <div class="opt-list" id="alleList"></div>
+  </div>
+
+  <!-- ── LERNEN ── -->
+  <div class="panel" id="tab-lernen">
+    <div style="font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:4px">Lernbereich</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:20px;font-family:'JetBrains Mono',monospace">Prüfungen tracken · Lernfortschritt dokumentieren · Themen abhaken</div>
+
+    <!-- Prüfungen -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Prüfungen</div>
+        <button class="btn btn-sm btn-gold" onclick="togglePruefForm()">+ Neue Prüfung</button>
+      </div>
+      <div id="pruefForm" style="display:none;padding:16px 20px;border-bottom:1px solid var(--b1)">
+        <div class="form-grid">
+          <div class="fg"><label>Fach / Prüfung *</label><input type="text" id="pfName" placeholder="z.B. Privatrecht I"></div>
+          <div class="fg"><label>Prüfungsdatum *</label><input type="date" id="pfDate"></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>Lernstart-Datum</label><input type="date" id="pfStart"></div>
+          <div class="fg"><label>Angestrebte Note</label><select id="pfNote"><option value="">— optional —</option><option>Sehr gut (1)</option><option>Gut (2)</option><option>Befriedigend (3)</option><option>Genügend (4)</option></select></div>
+        </div>
+        <div class="fg"><label>Themen / Stoffgebiete (eines pro Zeile)</label><textarea id="pfThemen" rows="4" placeholder="z.B. Vertragsrecht&#10;Deliktsrecht&#10;Sachenrecht"></textarea></div>
+        <div class="fg"><label>Notizen</label><textarea id="pfNotes" rows="2" placeholder="Besonderheiten, Hilfsmittel, …"></textarea></div>
+        <div class="btn-row"><button class="btn btn-gold" onclick="savePruefung()">Prüfung speichern</button><button class="btn btn-ghost" onclick="togglePruefForm()">Abbrechen</button></div>
+      </div>
+      <div class="card-body" id="pruefList"><div class="empty"><span class="empty-icon">📅</span>Noch keine Prüfungen eingetragen</div></div>
+    </div>
+
+    <!-- Lerneinheit erfassen -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">Lerneinheit erfassen</div></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="fg"><label>Prüfung</label><select id="logPruef"><option value="">— allgemein —</option></select></div>
+          <div class="fg"><label>Datum</label><input type="date" id="logDate"></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>Dauer (Minuten)</label><input type="number" id="logMin" min="1" max="600" placeholder="60"></div>
+          <div class="fg"><label>Methode</label><select id="logMethod"><option>Lesen & Markieren</option><option>Karteikarten</option><option>Zusammenfassung schreiben</option><option>Übungsaufgaben</option><option>Altklausuren</option><option>Repetition / Wiederholen</option><option>Vorlesung nacharbeiten</option><option>Gruppenlernen</option><option>Sonstiges</option></select></div>
+        </div>
+        <div class="fg"><label>Was gelernt / Notiz</label><input type="text" id="logText" placeholder="z.B. Kapitel 3 Vertragsrecht abgeschlossen"></div>
+        <div class="btn-row"><button class="btn btn-gold" onclick="saveLog()">Einheit speichern</button></div>
+      </div>
+    </div>
+
+    <!-- Lernstatistik -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">Lernstatistik</div></div>
+      <div class="card-body" id="lernStats"><div class="empty"><span class="empty-icon">📊</span>Noch keine Lerneinheiten</div></div>
+    </div>
+
+    <!-- Lernlog -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Lernprotokoll</div>
+        <span style="font-size:12px;color:var(--t3)" id="logCount">0 Einheiten</span>
+      </div>
+      <div class="card-body" id="lernLogList"><div class="empty"><span class="empty-icon">📝</span>Noch keine Einträge</div></div>
+    </div>
+  </div>
+
+  <!-- ── ERRUNGENSCHAFTEN ── -->
+  <div class="panel" id="tab-errungenschaften">
+    <div style="font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:4px">Errungenschaften</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:20px;font-family:'JetBrains Mono',monospace">Schalte Errungenschaften frei · sammle XP · steige auf</div>
+    <div class="ach-grid" id="achGrid"></div>
+    <div class="divider"></div>
+    <div class="section-label">Kategorie-Fortschritt</div>
+    <div id="catProg"></div>
+  </div>
+
+  <!-- ── RÜCKBLICK ── -->
+  <div class="panel" id="tab-rueckblick">
+    <div style="font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:4px">Wochenrückblick</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:20px;font-family:'JetBrains Mono',monospace">Reflektiere jede Woche kurz — was lief gut, was kommt nächste Woche.</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><div class="card-title">Rückblick schreiben</div><span class="kw-tag gold" id="revKW">KW —</span></div>
+      <div class="card-body">
+        <div class="fg"><label>Was lief diese Woche gut?</label><textarea id="revGut" rows="3" placeholder="Erfolge, Fortschritte, positive Gewohnheiten…"></textarea></div>
+        <div class="fg"><label>Was möchte ich nächste Woche verbessern?</label><textarea id="revNext" rows="3" placeholder="Fokus, Vorhaben, konkrete Änderungen…"></textarea></div>
+        <div class="fg"><label>Lernrückblick (optional)</label><textarea id="revLern" rows="2" placeholder="Wie lief das Studium diese Woche?"></textarea></div>
+        <div class="btn-row"><button class="btn btn-gold" onclick="saveReview()">Rückblick speichern</button></div>
+      </div>
+    </div>
+    <div class="section-label">Frühere Rückblicke</div>
+    <div id="revList"></div>
+  </div>
+
+  <!-- ── LEGENDE / ANLEITUNG ── -->
+  <div class="panel" id="tab-legende">
+    <div style="font-family:'Instrument Serif',serif;font-size:26px;margin-bottom:4px">Anleitung & Legende</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:28px;font-family:'JetBrains Mono',monospace">Alles was du wissen musst — auf einen Blick.</div>
+
+    <div class="legend-section">
+      <div class="legend-title">🚀 Wie starte ich?</div>
+      <div class="legend-steps">
+        <div class="legend-step"><div class="step-num">1</div><div class="step-text">Gehe zu <strong>Dashboard</strong> und kopiere den generierten Claude-Prompt in deinen Claude Chat.</div></div>
+        <div class="legend-step"><div class="step-num">2</div><div class="step-text">Claude schlägt dir eine konkrete Optimierung vor — auf dein Profil zugeschnitten.</div></div>
+        <div class="legend-step"><div class="step-num">3</div><div class="step-text">Komme zurück zu <strong>"+ Neue"</strong>, trage Name, Kategorie und den Claude-Vorschlag ein und speichere.</div></div>
+        <div class="legend-step"><div class="step-num">4</div><div class="step-text">Setze den Status auf <strong>Verinnerlicht</strong>, sobald du die Optimierung vollständig in deinen Alltag integriert hast.</div></div>
+        <div class="legend-step"><div class="step-num">5</div><div class="step-text">Schreibe jeden Freitag kurz deinen <strong>Wochenrückblick</strong> — das gibt +5 XP und hilft dir, bewusster zu werden.</div></div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <div class="legend-title">📋 Status-Bedeutung</div>
+      <div class="legend-grid">
+        <div class="legend-card"><h4><span class="badge b-aktiv">Aktiv</span></h4><p>Du hast die Optimierung eingetragen und übst sie aktiv ein. Du wendest sie bewusst an, sie ist aber noch nicht zur Gewohnheit geworden.</p></div>
+        <div class="legend-card"><h4><span class="badge b-verinnerlicht">Verinnerlicht</span></h4><p>Die Optimierung ist vollständig in deinen Alltag integriert — du machst es automatisch, ohne darüber nachzudenken. Gibt +15 XP.</p></div>
+        <div class="legend-card"><h4><span class="badge b-pausiert">Pausiert</span></h4><p>Du hast die Optimierung vorübergehend auf Eis gelegt — zum Beispiel weil Klausurenphase ist oder sich deine Prioritäten verschoben haben.</p></div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <div class="legend-title">📚 Lernbereich</div>
+      <div class="legend-grid">
+        <div class="legend-card"><h4>🎯 Prüfung anlegen</h4><p>Trage eine bevorstehende Prüfung mit Datum und Themen ein. Das Tool berechnet den Countdown und zeigt deinen Lernfortschritt je Thema.</p></div>
+        <div class="legend-card"><h4>⏱ Lerneinheit erfassen</h4><p>Halte jede Lernsession fest: Dauer, Methode und was du gelernt hast. So siehst du über Wochen, wie viel Zeit du investiert hast.</p></div>
+        <div class="legend-card"><h4>✅ Themen abhaken</h4><p>Klicke eine Prüfung auf, um einzelne Themengebiete als "Gelernt", "In Arbeit" oder "Offen" zu markieren. Der Fortschrittsbalken zeigt dir wie weit du bist.</p></div>
+        <div class="legend-card"><h4>📊 Lernstatistik</h4><p>Sieh auf einen Blick: Gesamtstunden, Stunden pro Fach, durchschnittliche Lerndauer pro Session und welche Methode du am häufigsten nutzt.</p></div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <div class="legend-title">⚡ XP & Level-System</div>
+      <div class="legend-grid">
+        <div class="legend-card"><h4>+10 XP — Neue Optimierung</h4><p>Jedes Mal wenn du eine neue Optimierung einträgst, erhältst du 10 XP.</p></div>
+        <div class="legend-card"><h4>+15 XP — Verinnerlicht</h4><p>Wenn du eine Optimierung auf "Verinnerlicht" setzt, gibt es 15 Bonus-XP.</p></div>
+        <div class="legend-card"><h4>+5 XP — Wochenrückblick</h4><p>Jeden gespeicherten Wochenrückblick honoriert das System mit 5 XP.</p></div>
+        <div class="legend-card"><h4>+8 XP — Lerneinheit</h4><p>Jede erfasste Lerneinheit über 30 Minuten bringt 8 XP.</p></div>
+        <div class="legend-card"><h4>🏅 Errungenschaften</h4><p>Schalte Errungenschaften frei (z.B. "3-Wochen-Streak") und erhalte Bonus-XP. Insgesamt 14 Errungenschaften.</p></div>
+        <div class="legend-card"><h4>Level 1–10</h4><p>Von "Einsteiger" über "Optimierer" und "Stratege" bis zum "Optimum". Jedes Level braucht mehr XP als das vorherige.</p></div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <div class="legend-title">🔄 Cloud-Sync</div>
+      <div class="legend-grid">
+        <div class="legend-card"><h4>Grüner Punkt = verbunden</h4><p>Alle Änderungen werden automatisch in deine Supabase-Datenbank in Frankfurt gespeichert und auf allen Geräten synchronisiert.</p></div>
+        <div class="legend-card"><h4>Goldener Punkt = synchronisiert</h4><p>Daten werden gerade mit der Cloud synchronisiert. Das passiert automatisch beim Laden und Speichern.</p></div>
+        <div class="legend-card"><h4>Roter Punkt = offline</h4><p>Keine Verbindung zur Datenbank. Prüfe deine Internetverbindung oder die Supabase-Einstellungen.</p></div>
+        <div class="legend-card"><h4>E-Mail Erinnerung</h4><p>Falls du das Tool 5 Tage nicht nutzt, bekommst du eine automatische E-Mail-Erinnerung — damit Supabase nicht nach 7 Tagen pausiert.</p></div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <div class="legend-title">💬 Kategorien-Übersicht</div>
+      <div class="legend-grid" id="catLegendGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── EINSTELLUNGEN ── -->
+  <div class="panel" id="tab-einstellungen">
+    <div style="font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:20px">Einstellungen</div>
+
+    <div class="settings-card">
+      <h3>Supabase Verbindung</h3>
+      <div class="conn-status"><div class="sync-dot" id="setDot"></div><span id="setConnLabel">Prüfe Verbindung…</span></div>
+      <div class="fg"><label>Project URL</label><input type="text" id="setUrl" placeholder="https://xxxx.supabase.co"></div>
+      <div class="fg"><label>Anon Key</label><input type="text" id="setKey" placeholder="eyJ…"></div>
+      <div class="btn-row"><button class="btn btn-gold" onclick="updateConn()">Verbindung aktualisieren</button><button class="btn btn-ghost btn-sm" onclick="syncNow()">↻ Jetzt synchronisieren</button></div>
+    </div>
+
+    <div class="settings-card">
+      <h3>E-Mail Erinnerung</h3>
+      <p style="font-size:13px;color:var(--t3);margin-bottom:12px;line-height:1.6">Das Tool prüft beim Öffnen, wann du zuletzt aktiv warst. Wenn du 5 oder mehr Tage nicht da warst, wird dir angezeigt, dass du auch die Supabase-Konsole einmal öffnen solltest, damit das Projekt aktiv bleibt.<br><br><strong style="color:var(--gold)">Für echte E-Mail-Erinnerungen:</strong> Richte in Supabase unter <em>Database → Cron Jobs</em> einen wöchentlichen Job ein. Eine Schritt-für-Schritt-Anleitung findest du in der Einrichtungsdokumentation.</p>
+      <div class="fg"><label>Deine E-Mail Adresse</label><input type="email" id="setEmail" placeholder="deine@email.com"></div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px;font-family:'JetBrains Mono',monospace">Die E-Mail wird lokal gespeichert und für die Erinnerungsanzeige verwendet.</div>
+      <button class="btn btn-gold" onclick="saveEmail()">E-Mail speichern</button>
+    </div>
+
+    <div class="settings-card">
+      <h3>Profil</h3>
+      <div class="two-col">
+        <div class="fg"><label>Name</label><input type="text" id="setName" placeholder="Dein Name"></div>
+        <div class="fg"><label>Beruf / Studium</label><input type="text" id="setJob" placeholder="z.B. Vollzeit + Jus-Studium"></div>
+      </div>
+      <div class="two-col">
+        <div class="fg"><label>Hauptzeitfresser</label><input type="text" id="setTimewaste" placeholder="z.B. E-Mails, Ablenkungen"></div>
+        <div class="fg"><label>Ziele</label><input type="text" id="setGoals" placeholder="z.B. Produktivität, Gesundheit"></div>
+      </div>
+      <div class="fg"><label>Zusätzlicher Kontext für Claude</label><textarea id="setCtx" rows="2" placeholder="Aktuelle Lerninhalte, Herausforderungen…"></textarea></div>
+      <button class="btn btn-gold" onclick="saveProfile()">Profil speichern</button>
+    </div>
+
+    <div class="settings-card">
+      <h3>Daten</h3>
+      <p style="font-size:13px;color:var(--t3);margin-bottom:12px;line-height:1.6">Alle Daten liegen in deiner Supabase-Datenbank in Frankfurt. Lokal werden nur die Verbindungsdaten gespeichert.</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="resetSetup()" style="color:var(--rose)">Verbindung zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- LEVEL MODAL -->
+<div class="modal-overlay" id="lvModal">
+  <div class="modal-box">
+    <span class="modal-icon">🏆</span>
+    <div class="modal-title">Level Up!</div>
+    <div class="modal-sub" id="lvModalSub">Du hast Level 2 erreicht!</div>
+    <button class="btn btn-gold" onclick="closeModal('lvModal')">Weiter</button>
+  </div>
+</div>
+
+<!-- INACTIVITY MODAL -->
+<div class="modal-overlay" id="inactModal">
+  <div class="modal-box">
+    <span class="modal-icon">⏰</span>
+    <div class="modal-title">Kurze Erinnerung</div>
+    <div class="modal-sub">Du warst <span id="inactDays"></span> Tage nicht aktiv. Öffne kurz die <strong>Supabase Konsole</strong> (supabase.com), damit dein Projekt nicht pausiert wird.</div>
+    <div class="btn-row" style="justify-content:center;margin-top:4px">
+      <button class="btn btn-gold" onclick="closeModal('inactModal')">Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="xp-pop" id="xpPop">+10 XP</div>
+
+<script>
+// ── CONSTANTS ───────────────────────────────────────────────
+const CATS=[
+  {id:'pc',        label:'PC & Shortcuts',      icon:'⌨',  color:'#5a9cf0'},
+  {id:'app',       label:'Apps & Tools',         icon:'📱', color:'#3dcfb0'},
+  {id:'gadget',    label:'Gadgets',              icon:'🔧', color:'#9b7ef0'},
+  {id:'lernen',    label:'Lernen & Studium',     icon:'📚', color:'#5a9cf0'},
+  {id:'alltag',    label:'Alltag & Haushalt',    icon:'🏠', color:'#5ac87a'},
+  {id:'gesundheit',label:'Gesundheit & Energie', icon:'💪', color:'#e05a6a'},
+  {id:'mindset',   label:'Mindset & Routinen',   icon:'🧠', color:'#d4a843'},
+  {id:'kommunikation',label:'Kommunikation',     icon:'💬', color:'#3dcfb0'},
+  {id:'finanzen',  label:'Finanzen',             icon:'💰', color:'#5ac87a'},
+];
+
+const LEVELS=[
+  {l:1,t:'Einsteiger',   xp:0},
+  {l:2,t:'Lernender',    xp:100},
+  {l:3,t:'Aufsteiger',   xp:250},
+  {l:4,t:'Optimierer',   xp:500},
+  {l:5,t:'Stratege',     xp:900},
+  {l:6,t:'Meister',      xp:1400},
+  {l:7,t:'Experte',      xp:2100},
+  {l:8,t:'Grandmaster',  xp:3000},
+  {l:9,t:'Legende',      xp:4200},
+  {l:10,t:'Optimum',     xp:6000},
+];
+
+const ACHIEVEMENTS=[
+  {id:'first',   name:'Erster Schritt',        icon:'🌱',xp:20,  check:()=>opts.length>=1},
+  {id:'five',    name:'Handvoll',              icon:'🖐',xp:30,  check:()=>opts.length>=5},
+  {id:'ten',     name:'Zweistellig',           icon:'💫',xp:80,  check:()=>opts.length>=10},
+  {id:'twenty5', name:'Viertelzentner',        icon:'🎯',xp:200, check:()=>opts.length>=25},
+  {id:'week3',   name:'3-Wochen-Streak',       icon:'🔥',xp:50,  check:()=>calcStreak()>=3},
+  {id:'week10',  name:'10-Wochen-Krieger',     icon:'⚡',xp:150, check:()=>calcStreak()>=10},
+  {id:'verin3',  name:'Meister der Gewohnheit',icon:'🏅',xp:60,  check:()=>opts.filter(o=>o.status==='verinnerlicht').length>=3},
+  {id:'allcats', name:'Allrounder',            icon:'🌈',xp:120, check:()=>new Set(opts.map(o=>o.cat)).size>=9},
+  {id:'lernen3', name:'Jurist im Werden',      icon:'⚖',xp:50,  check:()=>opts.filter(o=>o.cat==='lernen').length>=3},
+  {id:'health3', name:'Körper & Geist',        icon:'💚',xp:50,  check:()=>opts.filter(o=>o.cat==='gesundheit').length>=3},
+  {id:'rev5',    name:'Reflektierer',          icon:'📔',xp:70,  check:()=>reviews.length>=5},
+  {id:'lern10h', name:'10-Stunden-Student',   icon:'📚',xp:80,  check:()=>totalLernMin()>=600},
+  {id:'lern50h', name:'50-Stunden-Student',   icon:'🎓',xp:200, check:()=>totalLernMin()>=3000},
+  {id:'pruef1',  name:'Erste Prüfung',        icon:'📝',xp:30,  check:()=>pruefungen.length>=1},
+];
+
+// ── STATE ───────────────────────────────────────────────────
+let SB_URL='', SB_KEY='';
+let opts=[], pruefungen=[], lernlog=[], reviews=[], achUnlocked=[], profile={};
+let totalXP=0, newOptCat=null, alleFilter='alle';
+
+// ── LOCAL STORAGE ────────────────────────────────────────────
+const ls=(k,d='')=>{try{return localStorage.getItem(k)??d}catch{return d}};
+const lss=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+const lsj=(k,d=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}};
+const lssj=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+
+// ── SUPABASE HELPERS ─────────────────────────────────────────
+async function sb(method,table,body=null,id=null){
+  const url=SB_URL+'/rest/v1/'+table+(id?'?id=eq.'+id:'');
+  const r=await fetch(url,{
+    method,
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'},
+    body:body?JSON.stringify(body):null
+  });
+  if(!r.ok){const e=await r.text();throw new Error(e)}
+  const txt=await r.text();
+  return txt?JSON.parse(txt):null;
+}
+
+async function sbGet(table,filter=''){
+  const r=await fetch(SB_URL+'/rest/v1/'+table+'?order=created_at.desc'+filter,{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbUpsert(table,data){
+  const r=await fetch(SB_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'resolution=merge-duplicates,return=representation'},
+    body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbDelete(table,id){
+  const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+    method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  });
+  if(!r.ok) throw new Error(await r.text());
+}
+
+async function sbPatch(table,id,data){
+  const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'},
+    body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── SYNC ─────────────────────────────────────────────────────
+function setSyncStatus(s){
+  const d=document.getElementById('syncDot');
+  const l=document.getElementById('syncLabel');
+  const d2=document.getElementById('setDot');
+  const l2=document.getElementById('setConnLabel');
+  if(!d) return;
+  d.className='sync-dot '+s;
+  if(d2) d2.className='sync-dot '+s;
+  const map={ok:'Verbunden · Klicken zum Sync',syncing:'Synchronisiert…',error:'Verbindung fehlgeschlagen'};
+  if(l) l.textContent=map[s]||s;
+  if(l2) l2.textContent=map[s]||s;
+}
+
+async function syncNow(){
+  setSyncStatus('syncing');
+  try{
+    [opts,pruefungen,lernlog,reviews]=await Promise.all([
+      sbGet('optimierungen'),
+      sbGet('pruefungen'),
+      sbGet('lernlog'),
+      sbGet('reviews'),
+    ]);
+    // load meta
+    const meta=await sbGet('meta');
+    if(meta&&meta.length){
+      const m=meta[0];
+      totalXP=m.total_xp||0;
+      achUnlocked=m.achievements||[];
+      profile=m.profile||{};
+    }
+    setSyncStatus('ok');
+    lss('lastActive',new Date().toISOString());
+    renderAll();
+  }catch(e){
+    setSyncStatus('error');
+    toast('Sync fehlgeschlagen: '+e.message,'err');
+  }
+}
+
+async function pushMeta(){
+  try{
+    await sbUpsert('meta',[{id:1,total_xp:totalXP,achievements:achUnlocked,profile:profile}]);
+  }catch(e){console.warn('Meta push failed',e)}
+}
+
+// ── SETUP ────────────────────────────────────────────────────
+const SQL=`-- Optimierungen
+create table if not exists optimierungen (
+  id text primary key,
+  name text not null,
+  cat text,
+  description text,
+  detail text,
+  note text,
+  status text default 'aktiv',
+  kw text,
+  created_at timestamptz default now()
+);
+
+-- Prüfungen
+create table if not exists pruefungen (
+  id text primary key,
+  name text not null,
+  exam_date date,
+  start_date date,
+  target_grade text,
+  themen jsonb default '[]',
+  notes text,
+  created_at timestamptz default now()
+);
+
+-- Lernlog
+create table if not exists lernlog (
+  id text primary key,
+  pruefung_id text,
+  log_date date,
+  minutes int,
+  method text,
+  note text,
+  created_at timestamptz default now()
+);
+
+-- Reviews
+create table if not exists reviews (
+  id text primary key,
+  kw text,
+  gut text,
+  next_week text,
+  lern text,
+  created_at timestamptz default now()
+);
+
+-- Meta (XP, Achievements, Profile)
+create table if not exists meta (
+  id int primary key default 1,
+  total_xp int default 0,
+  achievements jsonb default '[]',
+  profile jsonb default '{}',
+  updated_at timestamptz default now()
+);`;
+
+function copySql(){
+  navigator.clipboard.writeText(SQL).catch(()=>{
+    const t=document.createElement('textarea');
+    t.value=SQL;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);
+  });
+  toast('SQL kopiert!','ok');
+}
+
+function goStep(n){
+  document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+}
+
+async function finishSetup(){
+  const url=document.getElementById('setupUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('setupKey').value.trim();
+  const name=document.getElementById('setupName').value.trim();
+  if(!url||!key){toast('URL und Key sind Pflichtfelder','err');return}
+  SB_URL=url;SB_KEY=key;
+  lss('sb_url',url);lss('sb_key',key);
+  profile={name,job:'Vollzeit Büro · Rechtswissenschaften (berufsbegleitend)',timewaste:'E-Mails & Kommunikation, Ablenkungen & Fokus',goals:'Produktivität, Gesundheit, Persönliche Entwicklung',context:''};
+  lss('profile_name',name);
+  try{
+    await sbUpsert('meta',[{id:1,total_xp:10,achievements:[],profile}]);
+    // seed starter opt
+    await sbUpsert('optimierungen',[{id:'opt_starter',name:'Strg+Shift+C / Strg+Shift+V',cat:'pc',description:'Stil kopieren & einfügen in MS Word',detail:'Mit Strg+Shift+C kopierst du den Zeichenformat-Stil eines markierten Textes. Mit Strg+Shift+V überträgst du ihn auf einen anderen markierten Bereich.',note:'',status:'aktiv',kw:getKW(new Date())}]);
+    document.getElementById('setupOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    totalXP=10;
+    await syncNow();
+    toast('Verbindung erfolgreich! Willkommen 🎉','ok');
+    checkInactivity();
+  }catch(e){
+    toast('Verbindungsfehler: '+e.message,'err');
+  }
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function getKW(d){
+  const j=new Date(d.getFullYear(),0,1);
+  return 'KW '+String(Math.ceil((((d-j)/86400000)+j.getDay()+1)/7)).padStart(2,'0');
+}
+function getCat(id){return CATS.find(c=>c.id===id)||{label:id,icon:'•',color:'var(--t3)'}}
+function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
+function calcStreak(){return new Set(opts.map(o=>o.kw)).size}
+function totalLernMin(){return lernlog.reduce((s,l)=>s+(l.minutes||0),0)}
+function daysLeft(dateStr){
+  const d=new Date(dateStr)-new Date();
+  return Math.ceil(d/86400000);
+}
+function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('de-AT')}
+
+// ── TOAST / XP ───────────────────────────────────────────────
+let toastT;
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+function showXP(n){
+  const p=document.getElementById('xpPop');
+  p.textContent='+'+n+' XP';p.classList.add('show');
+  setTimeout(()=>p.classList.remove('show'),1800);
+}
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+// ── LEVEL ────────────────────────────────────────────────────
+function addXP(n,silent=false){
+  const oldLv=getLv(totalXP).l;
+  totalXP+=n;
+  renderLevel();
+  if(!silent)showXP(n);
+  const newLv=getLv(totalXP).l;
+  if(newLv>oldLv){
+    document.getElementById('lvModalSub').textContent='Du hast Level '+newLv+' erreicht und bist jetzt: '+getLv(totalXP).t+'!';
+    openModal('lvModal');
+  }
+  pushMeta();
+}
+function getLv(xp){
+  let cur=LEVELS[0];
+  for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].xp){cur=LEVELS[i];break}}
+  return cur;
+}
+function renderLevel(){
+  const cur=getLv(totalXP);
+  const ni=LEVELS.findIndex(l=>l.l===cur.l);
+  const next=LEVELS[ni+1];
+  document.getElementById('lvNum').textContent=cur.l;
+  document.getElementById('lvTitle').textContent=cur.t;
+  const xpIn=totalXP-cur.xp;
+  const xpFor=next?next.xp-cur.xp:1;
+  const pct=next?Math.min(100,Math.round(xpIn/xpFor*100)):100;
+  document.getElementById('xpBar').style.width=pct+'%';
+  document.getElementById('xpLbl').textContent=totalXP+' XP'+(next?' · '+xpIn+'/'+xpFor+' bis Lv '+(cur.l+1):'');
+  document.getElementById('ds-xp').textContent=totalXP;
+}
+
+// ── ACHIEVEMENTS ─────────────────────────────────────────────
+function checkAch(silent=false){
+  let news=[];
+  ACHIEVEMENTS.forEach(a=>{
+    if(!achUnlocked.includes(a.id)&&a.check()){
+      achUnlocked.push(a.id);news.push(a);addXP(a.xp,true);
+    }
+  });
+  if(news.length){
+    pushMeta();
+    if(!silent)news.forEach((a,i)=>setTimeout(()=>toast('🏅 Errungenschaft: '+a.name+' (+'+a.xp+' XP)','ok'),i*1400));
+  }
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────
+function showTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  const tabs=['dashboard','neue','alle','lernen','errungenschaften','rueckblick','legende','einstellungen'];
+  const i=tabs.indexOf(id);
+  if(i>=0)document.querySelectorAll('.nav-btn')[i].classList.add('active');
+  if(id==='alle')renderAlle('');
+  if(id==='errungenschaften')renderAch();
+  if(id==='rueckblick')renderReviews();
+  if(id==='einstellungen')loadSettings();
+  if(id==='lernen')renderLernen();
+  if(id==='legende')renderLegend();
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────
+function renderAll(){
+  renderDash();
+  renderLevel();
+  checkAch(true);
+  document.getElementById('cntBadge').textContent=opts.length;
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────
+function renderDash(){
+  document.getElementById('ds-tot').textContent=opts.length;
+  document.getElementById('ds-akt').textContent=opts.filter(o=>o.status==='aktiv').length;
+  document.getElementById('ds-ver').textContent=opts.filter(o=>o.status==='verinnerlicht').length;
+  document.getElementById('ds-str').textContent=calcStreak();
+  document.getElementById('ds-prf').textContent=pruefungen.length;
+  document.getElementById('cntBadge').textContent=opts.length;
+
+  const name=profile.name||'';
+  document.getElementById('dashName').textContent=name||'Mein Profil';
+  document.getElementById('brandSub').textContent=name?'Hallo '+name+' · Dein Tracker':'Persönlicher Verbesserungs-Tracker';
+
+  const kw=getKW(new Date());
+  document.getElementById('kwDisp').textContent=kw;
+  document.getElementById('revKW').textContent=kw;
+
+  // Prompt
+  const done=opts.map(o=>o.name).join(', ')||'keine';
+  const p=profile;
+  document.getElementById('promptTxt').textContent=`Du bist Experte für persönliche Optimierung. Ich suche meine Optimierung der Woche (${kw}).
+
+Mein Profil:
+- Beschäftigung: ${p.job||'Vollzeit Büro, Rechtswissenschaften (berufsbegleitend)'}
+- Hauptzeitfresser: ${p.timewaste||'E-Mails & Kommunikation, Ablenkungen & Fokus'}
+- Ziele: ${p.goals||'Produktivität, Gesundheit & Energie, Persönliche Entwicklung'}
+- Geräte: Windows 11, Office 365, iPhone, iPad, Claude Pro
+- Gewohnheiten: Analoger Kalender mit Timeboxing, analoges Notizbuch, Apple Notizen${p.context?'\n- Zusatz: '+p.context:''}
+
+Bisherige Optimierungen (NICHT nochmal vorschlagen): ${done}
+
+Schlage mir eine konkrete, sofort umsetzbare Optimierung vor:
+**[Name]**
+**Was ist es?** [1-2 Sätze]
+**Warum lohnt es sich?** [konkreter Nutzen]
+**So startest du sofort:** [2-4 nummerierte Schritte]
+**Profi-Tipp:** [ein Insider-Tipp]`;
+
+  // current week
+  const cur=opts.filter(o=>o.kw===kw);
+  const cl=document.getElementById('curWeekList');
+  cl.innerHTML=cur.length?cur.map(o=>miniOptItem(o)).join(''):'<div class="empty"><span class="empty-icon">🌱</span>Noch keine Einträge für '+kw+'</div>';
+
+  // upcoming Prüfungen
+  const upcoming=pruefungen.filter(p=>p.exam_date&&daysLeft(p.exam_date)>0).sort((a,b)=>new Date(a.exam_date)-new Date(b.exam_date)).slice(0,3);
+  const dp=document.getElementById('dashPruefungen');
+  dp.innerHTML=upcoming.length?upcoming.map(p=>{
+    const d=daysLeft(p.exam_date);
+    const cls=d<=7?'rot':d<=21?'amber':'gruen';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1)">
+      <div><div style="font-size:14px;font-weight:700">${p.name}</div><div style="font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace">${fmtDate(p.exam_date)}</div></div>
+      <div class="pf-countdown ${cls}">${d} Tage</div>
+    </div>`;
+  }).join(''):'<div class="empty"><span class="empty-icon">📅</span>Keine anstehenden Prüfungen</div>';
+
+  // streak cal
+  const kwSet=new Set(opts.map(o=>o.kw));
+  let cal='';
+  for(let i=11;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i*7);
+    const kws=getKW(d);const done=kwSet.has(kws);const cur2=i===0;
+    cal+=`<div class="sc${done?' done':''}${cur2?' cur':''}"><span style="font-size:12px">${done?'✓':''}</span><span class="sc-kw">${kws.replace('KW ','')}</span></div>`;
+  }
+  document.getElementById('streakCal').innerHTML=cal;
+}
+
+function miniOptItem(o){
+  const cat=getCat(o.cat);
+  const sc={aktiv:'b-aktiv',verinnerlicht:'b-verinnerlicht',pausiert:'b-pausiert'}[o.status]||'b-aktiv';
+  const sl={aktiv:'Aktiv',verinnerlicht:'Verinnerlicht',pausiert:'Pausiert'}[o.status]||o.status;
+  return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1)">
+    <span style="font-size:16px">${cat.icon}</span>
+    <div style="flex:1"><div style="font-size:13px;font-weight:700">${o.name}</div><div style="font-size:11px;color:var(--t3)">${o.description||''}</div></div>
+    <span class="badge ${sc}">${sl}</span>
+  </div>`;
+}
+
+// ── NEUE OPTIMIERUNG ─────────────────────────────────────────
+function renderNewChips(){
+  const r=document.getElementById('newChipRow');
+  if(!r)return;
+  r.innerHTML=CATS.map(c=>`<button class="chip" id="nc-${c.id}" onclick="selCat('${c.id}')">${c.icon} ${c.label}</button>`).join('');
+  const s=document.getElementById('nCat');
+  if(s)s.innerHTML=CATS.map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+}
+
+function selCat(id){
+  newOptCat=id;
+  document.querySelectorAll('#newChipRow .chip').forEach(c=>c.classList.remove('active'));
+  document.getElementById('nc-'+id)?.classList.add('active');
+  document.getElementById('nCat').value=id;
+}
+
+async function saveOpt(){
+  const name=document.getElementById('nName').value.trim();
+  if(!name){toast('Bezeichnung ist Pflichtfeld','err');return}
+  const cat=document.getElementById('nCat').value;
+  const o={id:uid(),name,cat,description:document.getElementById('nDesc').value.trim(),detail:document.getElementById('nDetail').value.trim(),note:document.getElementById('nNote').value.trim(),status:'aktiv',kw:getKW(new Date())};
+  setSyncStatus('syncing');
+  try{
+    await sbUpsert('optimierungen',[o]);
+    opts.unshift(o);
+    addXP(10);
+    checkAch();
+    clearOptForm();
+    renderDash();
+    showTab('dashboard');
+    toast('✦ Optimierung gespeichert!','ok');
+    setSyncStatus('ok');
+  }catch(e){setSyncStatus('error');toast('Fehler: '+e.message,'err')}
+}
+
+function clearOptForm(){
+  ['nName','nDesc','nDetail','nNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  newOptCat=null;
+  document.querySelectorAll('#newChipRow .chip').forEach(c=>c.classList.remove('active'));
+}
+
+// ── ALLE ─────────────────────────────────────────────────────
+function renderAlleCatRow(){
+  const r=document.getElementById('alleCatFilter');
+  const all=[{id:'alle',label:'Alle',icon:''},...CATS];
+  r.innerHTML=all.map(c=>`<button class="chip ${c.id===alleFilter?'active':''}" onclick="setAlleFilter('${c.id}')">${c.icon?c.icon+' ':''}${c.label}</button>`).join('');
+}
+
+function setAlleFilter(id){
+  alleFilter=id;renderAlleCatRow();
+  renderAlle(document.querySelector('#tab-alle input')?.value||'');
+}
+
+function renderAlle(search=''){
+  renderAlleCatRow();
+  const list=document.getElementById('alleList');
+  let items=[...opts];
+  if(alleFilter!=='alle')items=items.filter(o=>o.cat===alleFilter);
+  if(search){const q=search.toLowerCase();items=items.filter(o=>o.name.toLowerCase().includes(q)||(o.description||'').toLowerCase().includes(q))}
+  if(!items.length){list.innerHTML='<div class="empty"><span class="empty-icon">📭</span>Keine Einträge gefunden</div>';return}
+  list.innerHTML=items.map(o=>fullOptItem(o)).join('');
+}
+
+function fullOptItem(o){
+  const cat=getCat(o.cat);
+  const sc={aktiv:'b-aktiv',verinnerlicht:'b-verinnerlicht',pausiert:'b-pausiert'}[o.status]||'b-aktiv';
+  const sl={aktiv:'Aktiv',verinnerlicht:'Verinnerlicht',pausiert:'Pausiert'}[o.status]||o.status;
+  return `<div class="opt-item" id="oi-${o.id}" onclick="toggleOI('${o.id}')">
+    <div class="opt-head">
+      <div class="opt-ico" style="background:${cat.color}18;border-color:${cat.color}33">${cat.icon}</div>
+      <div class="opt-main">
+        <div class="opt-name">${o.name}</div>
+        <div class="opt-meta"><span class="kw-tag">${o.kw||''}</span><span class="badge b-cat">${cat.label}</span><span class="badge ${sc}">${sl}</span></div>
+        ${o.description?`<div class="opt-desc">${o.description}</div>`:''}
+      </div>
+    </div>
+    <div class="opt-detail" onclick="event.stopPropagation()">
+      ${o.detail?`<div class="opt-detail-text">${o.detail}</div>`:''}
+      <div class="note-area"><label>Notiz</label><textarea rows="2" onchange="updateNote('${o.id}',this.value)">${o.note||''}</textarea></div>
+      <div class="btn-row">
+        <select class="btn btn-sm btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onchange="changeStatus('${o.id}',this.value)">
+          <option value="aktiv" ${o.status==='aktiv'?'selected':''}>Aktiv</option>
+          <option value="verinnerlicht" ${o.status==='verinnerlicht'?'selected':''}>Verinnerlicht</option>
+          <option value="pausiert" ${o.status==='pausiert'?'selected':''}>Pausiert</option>
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="deleteOpt('${o.id}')" style="color:var(--rose)">Löschen</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleOI(id){document.getElementById('oi-'+id)?.classList.toggle('expanded')}
+
+async function changeStatus(id,status){
+  const o=opts.find(x=>x.id===id);if(!o)return;
+  o.status=status;
+  try{await sbPatch('optimierungen',id,{status});if(status==='verinnerlicht')addXP(15);checkAch();toast('Status aktualisiert','ok');}catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+async function updateNote(id,val){
+  const o=opts.find(x=>x.id===id);if(o){o.note=val;try{await sbPatch('optimierungen',id,{note:val})}catch{}}
+}
+
+async function deleteOpt(id){
+  if(!confirm('Eintrag wirklich löschen?'))return;
+  try{await sbDelete('optimierungen',id);opts=opts.filter(o=>o.id!==id);renderAlle('');renderDash();checkAch();toast('Gelöscht')}
+  catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+// ── LERNEN ────────────────────────────────────────────────────
+function renderLernen(){
+  renderPruefungen();
+  renderLernLog();
+  renderLernStats();
+  updateLogPruefSelect();
+}
+
+function togglePruefForm(){
+  const f=document.getElementById('pruefForm');
+  f.style.display=f.style.display==='none'?'block':'none';
+  if(f.style.display==='block'){
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('pfDate').min=today;
+  }
+}
+
+async function savePruefung(){
+  const name=document.getElementById('pfName').value.trim();
+  const date=document.getElementById('pfDate').value;
+  if(!name||!date){toast('Name und Datum sind Pflichtfelder','err');return}
+  const themenRaw=document.getElementById('pfThemen').value.trim();
+  const themen=themenRaw?themenRaw.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({name:t,status:'offen'})):[];
+  const p={id:uid(),name,exam_date:date,start_date:document.getElementById('pfStart').value||null,target_grade:document.getElementById('pfNote').value||null,themen,notes:document.getElementById('pfNotes').value.trim()};
+  try{
+    await sbUpsert('pruefungen',[p]);
+    pruefungen.unshift(p);
+    document.getElementById('pfName').value='';document.getElementById('pfDate').value='';
+    document.getElementById('pfStart').value='';document.getElementById('pfThemen').value='';document.getElementById('pfNotes').value='';
+    togglePruefForm();renderLernen();renderDash();checkAch();
+    toast('Prüfung gespeichert','ok');
+  }catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+function renderPruefungen(){
+  const list=document.getElementById('pruefList');
+  if(!pruefungen.length){list.innerHTML='<div class="empty"><span class="empty-icon">📅</span>Noch keine Prüfungen eingetragen</div>';return}
+  list.innerHTML=pruefungen.map(p=>{
+    const d=p.exam_date?daysLeft(p.exam_date):null;
+    const cls=d===null?'':d<=7?'rot':d<=21?'amber':'gruen';
+    const themen=p.themen||[];
+    const done=themen.filter(t=>t.status==='gelernt').length;
+    const pct=themen.length?Math.round(done/themen.length*100):0;
+    return `<div class="pruefung-card" id="pf-${p.id}" onclick="togglePf('${p.id}')">
+      <div class="pf-head">
+        <div><div class="pf-name">${p.name}</div><div class="pf-date">${fmtDate(p.exam_date)}${p.target_grade?' · Ziel: '+p.target_grade:''}</div></div>
+        ${d!==null?`<div class="pf-countdown ${cls}">${d>0?d+' Tage':'Vorbei!'}</div>`:''}
+      </div>
+      ${themen.length?`<div class="pf-progress-wrap"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace"><span>Fortschritt</span><span>${done}/${themen.length} Themen</span></div><div class="pf-prog-bar"><div class="pf-prog-fill" style="width:${pct}%"></div></div></div>`:''}
+      <div class="pf-detail" onclick="event.stopPropagation()">
+        ${p.notes?`<div style="font-size:13px;color:var(--t2);margin-bottom:12px">${p.notes}</div>`:''}
+        ${themen.length?`<div class="section-label" style="margin-bottom:8px">Themen</div>`+themen.map((t,i)=>`<div class="thema-item">
+          <div class="thema-name">${t.name}</div>
+          <select class="thema-status-sel" onchange="updateThema('${p.id}',${i},this.value)">
+            <option value="offen" ${t.status==='offen'?'selected':''}>Offen</option>
+            <option value="in_arbeit" ${t.status==='in_arbeit'?'selected':''}>In Arbeit</option>
+            <option value="gelernt" ${t.status==='gelernt'?'selected':''}>Gelernt ✓</option>
+          </select>
+        </div>`).join(''):''}
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-sm btn-ghost" onclick="deletePruefung('${p.id}')" style="color:var(--rose)">Prüfung löschen</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePf(id){document.getElementById('pf-'+id)?.classList.toggle('expanded')}
+
+async function updateThema(pruefId,idx,status){
+  const p=pruefungen.find(x=>x.id===pruefId);if(!p)return;
+  p.themen[idx].status=status;
+  try{await sbPatch('pruefungen',pruefId,{themen:p.themen});renderPruefungen();}
+  catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+async function deletePruefung(id){
+  if(!confirm('Prüfung wirklich löschen?'))return;
+  try{await sbDelete('pruefungen',id);pruefungen=pruefungen.filter(p=>p.id!==id);renderLernen();renderDash();toast('Gelöscht')}
+  catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+function updateLogPruefSelect(){
+  const s=document.getElementById('logPruef');
+  if(!s)return;
+  s.innerHTML='<option value="">— allgemein —</option>'+pruefungen.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+async function saveLog(){
+  const min=parseInt(document.getElementById('logMin').value)||0;
+  if(!min){toast('Bitte Dauer eingeben','err');return}
+  const l={id:uid(),pruefung_id:document.getElementById('logPruef').value||null,log_date:document.getElementById('logDate').value||new Date().toISOString().split('T')[0],minutes:min,method:document.getElementById('logMethod').value,note:document.getElementById('logText').value.trim()};
+  try{
+    await sbUpsert('lernlog',[l]);
+    lernlog.unshift(l);
+    if(min>=30)addXP(8);
+    checkAch();
+    document.getElementById('logMin').value='';document.getElementById('logText').value='';
+    renderLernen();toast('Lerneinheit gespeichert','ok');
+  }catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+function renderLernLog(){
+  const list=document.getElementById('lernLogList');
+  document.getElementById('logCount').textContent=lernlog.length+' Einheiten';
+  if(!lernlog.length){list.innerHTML='<div class="empty"><span class="empty-icon">📝</span>Noch keine Einträge</div>';return}
+  list.innerHTML=lernlog.slice(0,20).map(l=>{
+    const pf=pruefungen.find(p=>p.id===l.pruefung_id);
+    return `<div class="lernlog-item">
+      <div class="lernlog-date">${fmtDate(l.log_date)}</div>
+      <div class="lernlog-text">${pf?'<span style="color:var(--gold);font-size:11px">'+pf.name+'</span> · ':''}<span>${l.note||l.method}</span></div>
+      <div class="lernlog-min">${l.minutes} min</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLernStats(){
+  const el=document.getElementById('lernStats');
+  if(!lernlog.length){el.innerHTML='<div class="empty"><span class="empty-icon">📊</span>Noch keine Lerneinheiten</div>';return}
+  const totMin=totalLernMin();
+  const totH=Math.floor(totMin/60);const totM=totMin%60;
+  const byPruef={};
+  lernlog.forEach(l=>{const k=l.pruefung_id||'allgemein';byPruef[k]=(byPruef[k]||0)+l.minutes});
+  const byMethod={};
+  lernlog.forEach(l=>{byMethod[l.method]=(byMethod[l.method]||0)+1});
+  const topMethod=Object.entries(byMethod).sort((a,b)=>b[1]-a[1])[0];
+  const avgMin=Math.round(totMin/lernlog.length);
+
+  el.innerHTML=`<div class="stats-row" style="margin-bottom:16px">
+    <div class="stat-mini"><div class="stat-num">${totH}h ${totM}m</div><div class="stat-lbl">Gesamt</div></div>
+    <div class="stat-mini"><div class="stat-num">${lernlog.length}</div><div class="stat-lbl">Einheiten</div></div>
+    <div class="stat-mini"><div class="stat-num">${avgMin} min</div><div class="stat-lbl">Ø Session</div></div>
+  </div>
+  <div class="section-label">Nach Fach</div>
+  ${Object.entries(byPruef).map(([k,m])=>{
+    const pf=pruefungen.find(p=>p.id===k);
+    const max=Math.max(...Object.values(byPruef));
+    return `<div class="prog-item"><div class="prog-lbl">${pf?pf.name:'Allgemein'}</div><div class="prog-bar"><div class="prog-fill" style="width:${Math.round(m/max*100)}%;background:var(--blue)"></div></div><div class="prog-num">${Math.floor(m/60)}h</div></div>`;
+  }).join('')}
+  ${topMethod?`<div style="font-size:12px;color:var(--t3);margin-top:12px;font-family:'JetBrains Mono',monospace">Lieblings-Methode: <span style="color:var(--gold)">${topMethod[0]}</span></div>`:''}`;
+}
+
+// ── ACHIEVEMENTS ─────────────────────────────────────────────
+function renderAch(){
+  const grid=document.getElementById('achGrid');
+  grid.innerHTML=ACHIEVEMENTS.map(a=>{
+    const u=achUnlocked.includes(a.id);
+    return `<div class="ach-card ${u?'unlocked':'locked'}">
+      <span class="ach-icon">${a.icon}</span>
+      <div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.desc||''}</div>
+      <span class="ach-xp">+${a.xp} XP</span>
+      ${u?'<div style="font-size:10px;color:var(--teal);margin-top:6px;font-family:\'JetBrains Mono\',monospace">✓ FREIGESCHALTET</div>':''}
+    </div>`;
+  }).join('');
+
+  const catCounts={};CATS.forEach(c=>catCounts[c.id]=0);opts.forEach(o=>{if(catCounts[o.cat]!==undefined)catCounts[o.cat]++});
+  const max=Math.max(...Object.values(catCounts),1);
+  document.getElementById('catProg').innerHTML=CATS.map(c=>`<div class="prog-item"><div class="prog-lbl">${c.icon} ${c.label}</div><div class="prog-bar"><div class="prog-fill" style="width:${Math.round(catCounts[c.id]/max*100)}%;background:${c.color}"></div></div><div class="prog-num">${catCounts[c.id]}</div></div>`).join('');
+}
+
+// ── REVIEWS ──────────────────────────────────────────────────
+async function saveReview(){
+  const gut=document.getElementById('revGut').value.trim();
+  const next=document.getElementById('revNext').value.trim();
+  const lern=document.getElementById('revLern').value.trim();
+  if(!gut&&!next){toast('Bitte mindestens ein Feld ausfüllen','err');return}
+  const r={id:uid(),kw:getKW(new Date()),gut,next_week:next,lern};
+  try{
+    await sbUpsert('reviews',[r]);
+    reviews.unshift(r);addXP(5);checkAch();
+    document.getElementById('revGut').value='';document.getElementById('revNext').value='';document.getElementById('revLern').value='';
+    renderReviews();toast('Rückblick gespeichert','ok');
+  }catch(e){toast('Fehler: '+e.message,'err')}
+}
+
+function renderReviews(){
+  const list=document.getElementById('revList');
+  if(!reviews.length){list.innerHTML='<div class="empty"><span class="empty-icon">📔</span>Noch keine Rückblicke</div>';return}
+  list.innerHTML=reviews.map(r=>`<div class="review-entry">
+    <div class="review-kw">${r.kw}</div>
+    ${r.gut?`<div style="font-size:10px;color:var(--t3);margin-bottom:3px;font-family:'JetBrains Mono',monospace">ERFOLGE</div><div class="review-text">${r.gut}</div>`:''}
+    ${r.next_week?`<div style="font-size:10px;color:var(--t3);margin:8px 0 3px;font-family:'JetBrains Mono',monospace">NÄCHSTE WOCHE</div><div class="review-text">${r.next_week}</div>`:''}
+    ${r.lern?`<div style="font-size:10px;color:var(--t3);margin:8px 0 3px;font-family:'JetBrains Mono',monospace">STUDIUM</div><div class="review-text">${r.lern}</div>`:''}
+  </div>`).join('');
+}
+
+// ── LEGENDE ──────────────────────────────────────────────────
+function renderLegend(){
+  const g=document.getElementById('catLegendGrid');
+  if(g)g.innerHTML=CATS.map(c=>`<div class="legend-card"><h4>${c.icon} ${c.label}</h4><p style="font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace">${c.id==='pc'?'Tastaturkürzel, Windows-Tricks, Office-Shortcuts':c.id==='app'?'Software, Browser-Extensions, Apps auf iPhone/iPad':c.id==='gadget'?'Hardware, Geräte, Zubehör':c.id==='lernen'?'Lernmethoden, Studiumstipps, Klausurvorbereitung':c.id==='alltag'?'Haushalt, Einkauf, tägliche Routinen':c.id==='gesundheit'?'Bewegung, Schlaf, Ernährung, Energie':c.id==='mindset'?'Gewohnheiten, Denkweisen, Zeitplanung':c.id==='kommunikation'?'E-Mail, Meetings, Sprache, Netzwerken':'Ausgaben, Sparen, Haushaltsbuch'}</p></div>`).join('');
+}
+
+// ── EINSTELLUNGEN ─────────────────────────────────────────────
+function loadSettings(){
+  document.getElementById('setUrl').value=SB_URL;
+  document.getElementById('setKey').value=SB_KEY;
+  document.getElementById('setName').value=profile.name||'';
+  document.getElementById('setJob').value=profile.job||'';
+  document.getElementById('setTimewaste').value=profile.timewaste||'';
+  document.getElementById('setGoals').value=profile.goals||'';
+  document.getElementById('setCtx').value=profile.context||'';
+  document.getElementById('setEmail').value=ls('user_email');
+  const d=document.getElementById('setDot');
+  if(d)d.className=document.getElementById('syncDot').className;
+}
+
+async function updateConn(){
+  const url=document.getElementById('setUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('setKey').value.trim();
+  if(!url||!key){toast('URL und Key erforderlich','err');return}
+  SB_URL=url;SB_KEY=key;
+  lss('sb_url',url);lss('sb_key',key);
+  await syncNow();toast('Verbindung aktualisiert','ok');
+}
+
+async function saveProfile(){
+  profile={...profile,
+    name:document.getElementById('setName').value.trim(),
+    job:document.getElementById('setJob').value.trim(),
+    timewaste:document.getElementById('setTimewaste').value.trim(),
+    goals:document.getElementById('setGoals').value.trim(),
+    context:document.getElementById('setCtx').value.trim()
+  };
+  await pushMeta();
+  renderDash();toast('Profil gespeichert','ok');
+}
+
+function saveEmail(){
+  const e=document.getElementById('setEmail').value.trim();
+  lss('user_email',e);toast('E-Mail gespeichert','ok');
+}
+
+function resetSetup(){
+  if(!confirm('Verbindung zurücksetzen? Die Daten in Supabase bleiben erhalten.'))return;
+  ['sb_url','sb_key'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+// ── COPY PROMPT ───────────────────────────────────────────────
+function copyPrompt(){
+  const txt=document.getElementById('promptTxt').textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast('Prompt kopiert!','ok')).catch(()=>{
+    const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);toast('Prompt kopiert!','ok');
+  });
+}
+
+// ── INACTIVITY CHECK ──────────────────────────────────────────
+function checkInactivity(){
+  const last=ls('lastActive');
+  if(!last)return;
+  const days=Math.floor((new Date()-new Date(last))/86400000);
+  if(days>=5){
+    document.getElementById('inactDays').textContent=days;
+    openModal('inactModal');
+  }
+  lss('lastActive',new Date().toISOString());
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+async function init(){
+  SB_URL=ls('sb_url');SB_KEY=ls('sb_key');
+  if(SB_URL&&SB_KEY){
+    document.getElementById('setupOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    renderNewChips();
+    await syncNow();
+    checkInactivity();
+    // set today's date in log
+    const ld=document.getElementById('logDate');
+    if(ld)ld.value=new Date().toISOString().split('T')[0];
+  } else {
+    document.getElementById('setupOverlay').style.display='flex';
+    document.getElementById('mainApp').style.display='none';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
